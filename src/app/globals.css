@@ -3,25 +3,60 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-primary: #1B4FD8;
+  --color-accent: #00C896;
+  --color-danger: #FF4D6D;
+  --color-background: #0A0F1E;
+  --color-surface: #111827;
+  --color-surface2: #1F2937;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #0A0F1E;
+  color: #F9FAFB;
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .gradient-text {
+    background: linear-gradient(135deg, #1B4FD8, #00C896);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .hero-grid {
+    background-image:
+      linear-gradient(rgba(27, 79, 216, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27, 79, 216, 0.07) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 60px rgba(27, 79, 216, 0.25), 0 0 120px rgba(27, 79, 216, 0.1);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 40px rgba(0, 200, 150, 0.2);
+  }
+
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 }
