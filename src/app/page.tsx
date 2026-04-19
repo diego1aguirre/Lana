@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatMXN } from "@/lib/design-tokens";
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
@@ -26,24 +27,35 @@ function Navbar() {
     >
       <Logo />
       <div className="hidden md:flex items-center gap-8">
-        {["Características", "Precios", "Blog"].map((link) => (
-          <a
-            key={link}
-            href="#"
-            className="text-sm transition-colors duration-200 hover:text-white"
-            style={{ color: "#9CA3AF", fontFamily: "var(--font-dm-sans)" }}
-          >
-            {link}
-          </a>
-        ))}
+        <a
+          href="#caracteristicas"
+          className="text-sm transition-colors duration-200 hover:text-white cursor-pointer"
+          style={{ color: "#9CA3AF", fontFamily: "var(--font-dm-sans)" }}
+        >
+          Características
+        </a>
+        <a
+          href="#precios"
+          className="text-sm transition-colors duration-200 hover:text-white cursor-pointer"
+          style={{ color: "#9CA3AF", fontFamily: "var(--font-dm-sans)" }}
+        >
+          Precios
+        </a>
+        <Link
+          href="/blog"
+          className="text-sm transition-colors duration-200 hover:text-white cursor-pointer"
+          style={{ color: "#9CA3AF", fontFamily: "var(--font-dm-sans)" }}
+        >
+          Blog
+        </Link>
       </div>
-      <a
-        href="#"
-        className="text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200 hover:opacity-90 hover:scale-105"
+      <Link
+        href="/signup"
+        className="text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200 hover:opacity-90 hover:scale-105 cursor-pointer"
         style={{ background: "#1B4FD8", color: "#F9FAFB", fontFamily: "var(--font-dm-sans)" }}
       >
         Empieza gratis
-      </a>
+      </Link>
     </nav>
   );
 }
@@ -223,9 +235,9 @@ function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-5">
-              <a
-                href="#"
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-base transition-all duration-200 hover:opacity-90 hover:scale-105"
+              <Link
+                href="/signup"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-base transition-all duration-200 hover:opacity-90 hover:scale-105 cursor-pointer"
                 style={{
                   background: "#1B4FD8",
                   color: "#F9FAFB",
@@ -234,10 +246,10 @@ function Hero() {
                 }}
               >
                 Comenzar gratis →
-              </a>
-              <a
-                href="#"
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-base transition-all duration-200 hover:bg-white/5"
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-base transition-all duration-200 hover:bg-white/5 cursor-pointer"
                 style={{
                   border: "1px solid rgba(255,255,255,0.1)",
                   color: "#F9FAFB",
@@ -245,7 +257,7 @@ function Hero() {
                 }}
               >
                 ▶ Ver demo
-              </a>
+              </Link>
             </div>
 
             <p className="text-sm" style={{ color: "#6B7280", fontFamily: "var(--font-dm-sans)" }}>
@@ -276,7 +288,7 @@ const features = [
 
 function Features() {
   return (
-    <section id="características" className="py-24 px-6 md:px-12" style={{ background: "#0A0F1E" }}>
+    <section id="caracteristicas" className="py-24 px-6 md:px-12" style={{ background: "#0A0F1E" }}>
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2
@@ -486,9 +498,9 @@ function Pricing() {
                 </li>
               ))}
             </ul>
-            <a
-              href="#"
-              className="block text-center py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:bg-white/5"
+            <Link
+              href="/signup"
+              className="block text-center py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:bg-white/5 cursor-pointer"
               style={{
                 border: "1px solid rgba(255,255,255,0.1)",
                 color: "#F9FAFB",
@@ -496,7 +508,7 @@ function Pricing() {
               }}
             >
               Empezar gratis
-            </a>
+            </Link>
           </div>
 
           {/* Pro */}
@@ -542,9 +554,9 @@ function Pricing() {
                 </li>
               ))}
             </ul>
-            <a
-              href="#"
-              className="block text-center py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:opacity-90 hover:scale-[1.02]"
+            <Link
+              href="/signup"
+              className="block text-center py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:opacity-90 hover:scale-[1.02] cursor-pointer"
               style={{
                 background: "#1B4FD8",
                 color: "#fff",
@@ -553,7 +565,7 @@ function Pricing() {
               }}
             >
               Comenzar con Pro
-            </a>
+            </Link>
           </div>
         </div>
       </div>
