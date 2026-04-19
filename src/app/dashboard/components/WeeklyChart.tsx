@@ -8,13 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
-const weeklyData = [
-  { week: "Sem. 1", amount: 2840 },
-  { week: "Sem. 2", amount: 3120 },
-  { week: "Sem. 3", amount: 2650 },
-  { week: "Sem. 4", amount: 4230 },
-];
+import type { WeeklyExpense } from "@/lib/types/database";
 
 function CustomTooltip({
   active,
@@ -29,10 +23,7 @@ function CustomTooltip({
     return (
       <div
         className="rounded-xl px-4 py-3"
-        style={{
-          background: "#1F2937",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
+        style={{ background: "#1F2937", border: "1px solid rgba(255,255,255,0.08)" }}
       >
         <p
           className="text-xs mb-1"
@@ -52,11 +43,39 @@ function CustomTooltip({
   return null;
 }
 
-export default function WeeklyChart() {
+interface WeeklyChartProps {
+  data: WeeklyExpense[];
+  totalLabel: string;
+}
+
+export default function WeeklyChart({ data, totalLabel }: WeeklyChartProps) {
+  const total = data.reduce((s, d) => s + d.amount, 0);
+  const avg = data.length > 0 ? total / data.length : 0;
+
+  const hasData = data.some((d) => d.amount > 0);
+
+  if (!hasData) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center h-52 rounded-xl"
+        style={{ background: "#1F2937" }}
+      >
+        <span className="text-2xl mb-2">📊</span>
+        <p className="text-sm" style={{ color: "#9CA3AF", fontFamily: "var(--font-dm-sans)" }}>
+          Sin gastos este mes
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={weeklyData} barSize={40} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+        <BarChart
+          data={data}
+          barSize={40}
+          margin={{ top: 4, right: 4, left: 4, bottom: 0 }}
+        >
           <XAxis
             dataKey="week"
             tick={{ fill: "#9CA3AF", fontSize: 12, fontFamily: "var(--font-dm-sans)" }}
@@ -66,14 +85,14 @@ export default function WeeklyChart() {
           <YAxis hide />
           <Tooltip
             content={<CustomTooltip />}
-            cursor={{ fill: "rgba(255,255,255,0.03)", radius: 8 }}
+            cursor={{ fill: "rgba(255,255,255,0.03)" }}
           />
           <Bar dataKey="amount" fill="#1B4FD8" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
 
       <div
-        className="flex gap-4 mt-3 pt-3 text-xs"
+        className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 text-xs"
         style={{
           borderTop: "1px solid rgba(255,255,255,0.05)",
           color: "#9CA3AF",
@@ -81,13 +100,17 @@ export default function WeeklyChart() {
         }}
       >
         <span>
-          Total abril:{" "}
-          <span style={{ color: "#F9FAFB", fontWeight: 600 }}>$12,840.00</span>
+          Total {totalLabel}:{" "}
+          <span style={{ color: "#F9FAFB", fontWeight: 600 }}>
+            ${total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+          </span>
         </span>
         <span>•</span>
         <span>
           Promedio semanal:{" "}
-          <span style={{ color: "#F9FAFB", fontWeight: 600 }}>$3,210.00</span>
+          <span style={{ color: "#F9FAFB", fontWeight: 600 }}>
+            ${avg.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+          </span>
         </span>
       </div>
     </div>
