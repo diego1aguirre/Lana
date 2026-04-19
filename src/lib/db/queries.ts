@@ -295,3 +295,115 @@ export async function deleteBudget(
     .eq("id", budgetId);
   return { error: error?.message ?? null };
 }
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+/** Fetch all transactions for the last N calendar months (including current). */
+export async function getTransactionsForPeriod(
+  userId: string,
+  months: number
+): Promise<Transaction[]> {
+  const supabase = createClient();
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
+
+  const { data } = await supabase
+    .from("transactions")
+    .select("*, category:categories(*), account:accounts(*)")
+    .eq("user_id", userId)
+    .gte("date", startStr)
+    .order("date", { ascending: true });
+
+  return (data as unknown as Transaction[]) ?? [];
+}
+
+export type MonthlyTotal = {
+  month: number;
+  year: number;
+  label: string; // "Ene 2024"
+  income: number;
+  expenses: number;
+  count: number;
+};
+
+const SHORT_MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+/** Aggregate income/expense totals per calendar month for the last N months. */
+export async function getMonthlyTotals(
+  userId: string,
+  months: number
+): Promise<MonthlyTotal[]> {
+  const txs = await getTransactionsForPeriod(userId, months);
+
+  // Build ordered list of month buckets
+  const now = new Date();
+  const result: MonthlyTotal[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    result.push({
+      month: d.getMonth() + 1,
+      year: d.getFullYear(),
+      label: `${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`,
+      income: 0,
+      expenses: 0,
+      count: 0,
+    });
+  }
+
+  for (const tx of txs) {
+    const [y, m] = tx.date.split("-").map(Number);
+    const bucket = result.find((r) => r.year === y && r.month === m);
+    if (!bucket) continue;
+    if (tx.type === "income") bucket.income += tx.amount;
+    else if (tx.type === "expense") bucket.expenses += tx.amount;
+    bucket.count++;
+  }
+
+  return result;
+}
+
+export type CategoryTotal = {
+  category_id: string | null;
+  name: string;
+  icon: string;
+  color: string;
+  total: number;
+  percentage: number;
+  count: number;
+};
+
+/** Top spending categories over the last N months, sorted by total descending. */
+export async function getCategoryTotalsForPeriod(
+  userId: string,
+  months: number
+): Promise<CategoryTotal[]> {
+  const txs = await getTransactionsForPeriod(userId, months);
+  const expenses = txs.filter((t) => t.type === "expense");
+  const grandTotal = expenses.reduce((s, t) => s + t.amount, 0);
+
+  const map: Record<string, CategoryTotal> = {};
+  for (const tx of expenses) {
+    const key = tx.category_id ?? "__none__";
+    if (!map[key]) {
+      map[key] = {
+        category_id: tx.category_id,
+        name: tx.category?.name ?? "Otros",
+        icon: tx.category?.icon ?? "📦",
+        color: tx.category?.color ?? "#6B7280",
+        total: 0,
+        percentage: 0,
+        count: 0,
+      };
+    }
+    map[key].total += tx.amount;
+    map[key].count++;
+  }
+
+  return Object.values(map)
+    .map((c) => ({
+      ...c,
+      percentage: grandTotal > 0 ? Math.round((c.total / grandTotal) * 100) : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+}
