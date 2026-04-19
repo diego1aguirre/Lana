@@ -114,6 +114,23 @@ export default function OnboardingPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
 
+    // Ensure profile row exists (trigger may not have fired for existing users)
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: user.id,
+          full_name: user.user_metadata?.full_name ?? null,
+          monthly_income: 0,
+        },
+        { onConflict: "id" }
+      );
+
+    if (profileError) {
+      console.log("Profile upsert error:", profileError);
+      // Non-fatal — continue to account creation
+    }
+
     const icon = TYPE_ICONS[account.type] ?? "💳";
 
     const { error: dbError } = await supabase.from("accounts").insert({
@@ -130,7 +147,8 @@ export default function OnboardingPage() {
     setLoading(false);
 
     if (dbError) {
-      setError("Error al crear la cuenta. Intenta de nuevo.");
+      console.log("Account insert error:", dbError);
+      setError(`Error al crear la cuenta: ${dbError.message}`);
       return;
     }
 

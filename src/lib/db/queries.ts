@@ -53,11 +53,32 @@ export async function createAccount(
   data: Omit<Account, "id" | "created_at">
 ): Promise<{ data: Account | null; error: string | null }> {
   const supabase = createClient();
+
+  // Ensure profile row exists before inserting account (FK constraint)
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: data.user_id,
+        full_name: null,
+        monthly_income: 0,
+      },
+      { onConflict: "id" }
+    );
+
+  if (profileError) {
+    console.log("Profile upsert error (createAccount):", profileError);
+    // Non-fatal — attempt account insert anyway
+  }
+
   const { data: account, error } = await supabase
     .from("accounts")
     .insert(data)
     .select()
     .single();
+
+  if (error) console.log("Account insert error (createAccount):", error);
+
   return { data: account as Account | null, error: error?.message ?? null };
 }
 
