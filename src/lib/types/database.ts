@@ -60,6 +60,7 @@ export type Budget = {
 export type BudgetWithSpent = Budget & { spent: number };
 
 export type CategoryExpense = {
+  category_id: string | null;
   name: string;
   icon: string;
   color: string;

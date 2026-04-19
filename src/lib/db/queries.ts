@@ -168,6 +168,7 @@ export async function getExpensesByCategory(
     const key = tx.category_id ?? "__none__";
     if (!grouped[key]) {
       grouped[key] = {
+        category_id: tx.category_id,
         name: tx.category?.name ?? "Otros",
         icon: tx.category?.icon ?? "📦",
         color: tx.category?.color ?? "#6B7280",
@@ -253,10 +254,44 @@ export async function createBudget(
   data: Omit<Budget, "id" | "created_at" | "category">
 ): Promise<{ data: Budget | null; error: string | null }> {
   const supabase = createClient();
+
+  // Check if a budget already exists for this user + category + month + year
+  const { data: existing } = await supabase
+    .from("budgets")
+    .select("id")
+    .eq("user_id", data.user_id)
+    .eq("month", data.month ?? 0)
+    .eq("year", data.year ?? 0)
+    .eq("category_id", data.category_id ?? "")
+    .maybeSingle();
+
+  if (existing?.id) {
+    // Update the existing row
+    const { data: updated, error } = await supabase
+      .from("budgets")
+      .update({ amount: data.amount, period: data.period })
+      .eq("id", existing.id)
+      .select()
+      .single();
+    return { data: updated as Budget | null, error: error?.message ?? null };
+  }
+
+  // Insert a new row
   const { data: budget, error } = await supabase
     .from("budgets")
     .insert(data)
     .select()
     .single();
   return { data: budget as Budget | null, error: error?.message ?? null };
+}
+
+export async function deleteBudget(
+  budgetId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("budgets")
+    .delete()
+    .eq("id", budgetId);
+  return { error: error?.message ?? null };
 }
