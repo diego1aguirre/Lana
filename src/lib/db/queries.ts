@@ -407,3 +407,50 @@ export async function getCategoryTotalsForPeriod(
     }))
     .sort((a, b) => b.total - a.total);
 }
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+
+export async function updateProfile(
+  userId: string,
+  data: { full_name?: string; monthly_income?: number }
+): Promise<{ error: string | null }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({ id: userId, ...data }, { onConflict: "id" });
+  return { error: error?.message ?? null };
+}
+
+export async function updateAccount(
+  accountId: string,
+  data: { name?: string; balance?: number; color?: string; icon?: string }
+): Promise<{ error: string | null }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("accounts")
+    .update(data)
+    .eq("id", accountId);
+  return { error: error?.message ?? null };
+}
+
+export async function deleteAccount(
+  accountId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("accounts")
+    .update({ is_active: false })
+    .eq("id", accountId);
+  return { error: error?.message ?? null };
+}
+
+export async function deleteAllTransactions(
+  userId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("transactions")
+    .delete()
+    .eq("user_id", userId);
+  return { error: error?.message ?? null };
+}
