@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Account } from "@/lib/types/database";
+import Toast from "@/components/ui/Toast";
 
 interface TransactionFormProps {
   categories: Category[];
@@ -59,6 +60,7 @@ export default function TransactionForm({
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const filteredCategories = categories.filter((c) => c.type === type);
 
@@ -87,6 +89,7 @@ export default function TransactionForm({
     });
 
     if (dbError) {
+      console.log("Transaction insert error:", dbError);
       setLoading(false);
       setError("Error al guardar la transacción. Intenta de nuevo.");
       return;
@@ -104,8 +107,12 @@ export default function TransactionForm({
       }
     }
 
-    router.push("/dashboard/transactions");
-    router.refresh();
+    // Show success toast, then navigate
+    setToast({ message: "Transacción guardada exitosamente", type: "success" });
+    setTimeout(() => {
+      router.push("/dashboard/transactions");
+      router.refresh();
+    }, 1200);
   }
 
   const isIncome = type === "income";
@@ -285,6 +292,14 @@ export default function TransactionForm({
           Cancelar
         </Link>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </form>
   );
 }
