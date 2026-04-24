@@ -1,30 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
+// useCallback retained for refreshAccounts / refreshLinks
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Account } from "@/lib/types/database";
 import type { BelvoLink } from "./page";
 import Toast from "@/components/ui/Toast";
-
-// ─── Belvo widget global type ─────────────────────────────────────────────────
-
-declare global {
-  interface Window {
-    belvoSDK?: {
-      createWidget: (
-        token: string,
-        config: {
-          locale?: string;
-          country_codes?: string[];
-          callback: (link: string, institution: { name: string }) => void;
-          onExit?: (data: unknown) => void;
-          onEvent?: (data: unknown) => void;
-        }
-      ) => { build: () => void };
-    };
-  }
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -50,14 +32,6 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   cash: "Efectivo",
 };
 
-const SUPPORTED_BANKS = [
-  { name: "BBVA", emoji: "🔵" },
-  { name: "Santander", emoji: "🔴" },
-  { name: "Citibanamex", emoji: "🌐" },
-  { name: "Banorte", emoji: "🟢" },
-  { name: "HSBC", emoji: "🔶" },
-];
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface AccountsViewProps {
@@ -74,12 +48,9 @@ export default function AccountsView({
   const router = useRouter();
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
   const [belvoLinks, setBelvoLinks] = useState<BelvoLink[]>(initialBelvoLinks);
-  const [widgetLoading, setWidgetLoading] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
-  // Script is loaded on-demand inside handleConnectBank
 
   // Refresh accounts from Supabase
   const refreshAccounts = useCallback(async () => {
@@ -103,114 +74,6 @@ export default function AccountsView({
       .order("created_at", { ascending: false });
     setBelvoLinks((data as BelvoLink[]) ?? []);
   }, [userId]);
-
-  // ── Open Belvo Connect Widget ─────────────────────────────────────────────
-
-  async function handleConnectBank() {
-    setWidgetLoading(true);
-    try {
-      // Step 1 — get access token
-      console.log("[Belvo] Step 1: fetching token...");
-      const tokenRes = await fetch("/api/belvo/token", { method: "POST" });
-      const tokenData = await tokenRes.json();
-      console.log("[Belvo] Token response:", tokenRes.status, tokenData.access ? "token received" : tokenData);
-      if (!tokenRes.ok || !tokenData.access) {
-        setToast({ message: tokenData.error ?? "Error al obtener token de Belvo.", type: "error" });
-        setWidgetLoading(false);
-        return;
-      }
-      const token: string = tokenData.access;
-
-      // Step 2 — load script on-demand if not already present
-      console.log("[Belvo] Step 2: loading SDK script...");
-      if (!document.getElementById("belvo-script")) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement("script");
-          script.id = "belvo-script";
-          script.src = "https://cdn.belvo.io/belvo-widget-1-stable.js";
-          script.onload = () => {
-            console.log("[Belvo] Script loaded ✓");
-            resolve();
-          };
-          script.onerror = () => reject(new Error("Failed to load Belvo script"));
-          document.head.appendChild(script);
-        });
-      } else {
-        console.log("[Belvo] Script already present, skipping load.");
-      }
-
-      // Step 3 — wait for window.belvoSDK to be defined
-      console.log("[Belvo] Step 3: waiting for belvoSDK...");
-      await new Promise<void>((resolve) => {
-        const check = () => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if ((window as any).belvoSDK) {
-            console.log("[Belvo] belvoSDK is ready ✓");
-            resolve();
-          } else {
-            setTimeout(check, 100);
-          }
-        };
-        check();
-      });
-
-      setWidgetLoading(false);
-
-      // Step 4 — make the Belvo mount div visible, then build the widget
-      const belvoDiv = document.getElementById("belvo");
-      if (belvoDiv) belvoDiv.style.display = "block";
-      console.log("[Belvo] Step 4: belvo div visible:", !!belvoDiv, "— creating widget with token:", token.slice(0, 20) + "...");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).belvoSDK.createWidget(token, {
-        locale: "es",
-        country_codes: ["MX"],
-        access_token: token,
-        callback: async (link: string, institution: string) => {
-          console.log("[Belvo] Callback — link:", link, "institution:", institution);
-          const institutionName = typeof institution === "string" ? institution : (institution as { name?: string })?.name ?? "Banco";
-          setToast({ message: `Conectando ${institutionName}...`, type: "success" });
-          try {
-            const res = await fetch("/api/belvo/link", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ link_id: link, institution_name: institutionName }),
-            });
-            const data = await res.json();
-            console.log("[Belvo] Link save response:", res.status, data);
-            if (res.ok) {
-              const txCount = data.sync?.transactions_synced ?? 0;
-              setToast({
-                message: `¡${institutionName} conectado! ${txCount > 0 ? `${txCount} transacciones importadas.` : ""}`,
-                type: "success",
-              });
-              await Promise.all([refreshLinks(), refreshAccounts()]);
-              setTimeout(() => router.push("/dashboard"), 2000);
-            } else {
-              setToast({ message: data.error ?? "Error al conectar el banco.", type: "error" });
-            }
-          } catch (e) {
-            console.error("[Belvo] Link save error:", e);
-            setToast({ message: "Error de red al conectar.", type: "error" });
-          }
-        },
-        onExit: (data: unknown) => {
-          console.log("[Belvo] Widget exited:", data);
-          const belvoDiv = document.getElementById("belvo");
-          if (belvoDiv) belvoDiv.style.display = "none";
-          setWidgetLoading(false);
-        },
-        onEvent: (data: unknown) => {
-          console.log("[Belvo] Widget event:", data);
-        },
-      }).build();
-
-      console.log("[Belvo] Widget .build() called ✓");
-    } catch (err) {
-      console.error("[Belvo] Widget error:", err);
-      setToast({ message: "Error al abrir el widget. Intenta de nuevo.", type: "error" });
-      setWidgetLoading(false);
-    }
-  }
 
   // ── Sync a Belvo link ─────────────────────────────────────────────────────
 
@@ -308,8 +171,7 @@ export default function AccountsView({
         </div>
 
         <button
-          onClick={handleConnectBank}
-          disabled={widgetLoading}
+          onClick={() => router.push("/dashboard/settings?tab=cuentas")}
           style={{
             background: "#1B4FD8",
             color: "#fff",
@@ -318,8 +180,7 @@ export default function AccountsView({
             padding: "12px 20px",
             fontSize: "14px",
             fontWeight: 600,
-            cursor: widgetLoading ? "not-allowed" : "pointer",
-            opacity: widgetLoading ? 0.7 : 1,
+            cursor: "pointer",
             fontFamily: "var(--font-dm-sans)",
             boxShadow: "0 0 24px rgba(27,79,216,0.35)",
             display: "flex",
@@ -328,69 +189,71 @@ export default function AccountsView({
             whiteSpace: "nowrap",
           }}
         >
-          {widgetLoading ? (
-            <>⏳ Cargando widget...</>
-          ) : (
-            <>🏦 Conectar banco mexicano</>
-          )}
+          ➕ Agregar cuenta manual
         </button>
       </div>
 
-      {/* Sandbox info banner */}
+      {/* Info banner */}
       <div style={{
-        background: "rgba(27,79,216,0.08)",
-        border: "1px solid rgba(27,79,216,0.2)",
+        background: "#1F2937",
+        border: "1px solid rgba(255,255,255,0.10)",
         borderRadius: "14px",
         padding: "14px 18px",
-        marginBottom: "24px",
+        marginBottom: "20px",
         display: "flex",
         alignItems: "flex-start",
         gap: "12px",
       }}>
-        <span style={{ fontSize: "20px", flexShrink: 0 }}>🧪</span>
-        <div>
-          <p style={{ fontSize: "14px", fontWeight: 600, color: "#93BBFF", margin: "0 0 2px" }}>
-            Modo sandbox activo
-          </p>
-          <p style={{ fontSize: "13px", color: "#6B7280", margin: 0 }}>
-            Usa credenciales de prueba para conectar bancos ficticios.{" "}
-            <a
-              href="https://developers.belvo.com/docs/test-in-sandbox"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "#60A5FA", textDecoration: "underline" }}
-            >
-              Ver credenciales de prueba →
-            </a>
-          </p>
-        </div>
+        <span style={{ fontSize: "20px", flexShrink: 0 }}>💡</span>
+        <p style={{ fontSize: "13px", color: "#9CA3AF", margin: 0, lineHeight: 1.6 }}>
+          Agrega tus cuentas manualmente y registra tus transacciones. La sincronización automática con bancos estará disponible pronto.
+        </p>
       </div>
 
-      {/* Bancos soportados */}
-      <div style={{ marginBottom: "28px" }}>
-        <p style={{ fontSize: "12px", fontWeight: 600, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px" }}>
-          Bancos disponibles
-        </p>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          {SUPPORTED_BANKS.map((bank) => (
-            <div
-              key={bank.name}
-              style={{
-                background: "#111827",
-                border: "1px solid rgba(255,255,255,0.07)",
-                borderRadius: "10px",
-                padding: "6px 14px",
-                fontSize: "13px",
-                color: "#D1D5DB",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontWeight: 500,
-              }}
-            >
-              <span>{bank.emoji}</span> {bank.name}
-            </div>
-          ))}
+      {/* Bank connection — coming soon card */}
+      <div style={{
+        background: "#111827",
+        border: "1px solid rgba(245,158,11,0.20)",
+        borderRadius: "16px",
+        padding: "20px",
+        marginBottom: "28px",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "16px",
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: "12px", flexShrink: 0,
+          background: "rgba(245,158,11,0.10)",
+          border: "1px solid rgba(245,158,11,0.20)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "22px",
+        }}>
+          🚀
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: "15px", fontWeight: 700, color: "#F9FAFB", margin: "0 0 6px", fontFamily: "var(--font-sora)" }}>
+            Conexión bancaria automática
+          </p>
+          <p style={{ fontSize: "13px", color: "#9CA3AF", margin: "0 0 10px", lineHeight: 1.6 }}>
+            Conecta tus cuentas de BBVA, Santander, Citibanamex, Banorte y más para sincronizar tus transacciones automáticamente.
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <span style={{
+              background: "rgba(245,158,11,0.12)",
+              border: "1px solid rgba(245,158,11,0.30)",
+              color: "#FCD34D",
+              fontSize: "11px",
+              fontWeight: 600,
+              padding: "3px 10px",
+              borderRadius: "999px",
+              letterSpacing: "0.02em",
+            }}>
+              Disponible próximamente • Acceso en revisión
+            </span>
+          </div>
+          <p style={{ fontSize: "12px", color: "#4B5563", margin: "10px 0 0" }}>
+            Mientras tanto, puedes agregar tus cuentas y transacciones manualmente.
+          </p>
         </div>
       </div>
 
@@ -560,9 +423,6 @@ export default function AccountsView({
           </div>
         )}
       </div>
-
-      {/* Required Belvo mount point — hidden until widget opens */}
-      <div id="belvo" style={{ display: "none" }} />
 
       {toast && (
         <Toast
