@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const navLinks = [
   { href: "/dashboard", icon: "🏠", label: "Inicio" },
+  { href: "/dashboard/accounts", icon: "🏦", label: "Cuentas" },
   { href: "/dashboard/transactions", icon: "💳", label: "Transacciones" },
   { href: "/dashboard/budgets", icon: "🎯", label: "Presupuestos" },
   { href: "/dashboard/reports", icon: "📊", label: "Reportes" },
