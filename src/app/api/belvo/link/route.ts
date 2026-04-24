@@ -1,31 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
+    const { link_id, institution_name } = await request.json();
+    console.log("Belvo link received:", { link_id, institution_name });
+
     const supabase = createClient();
+
+    // Get current user
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
+    console.log("Auth user:", user?.id, "Auth error:", authError);
 
     if (!user) {
-      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-
-    const body = await req.json();
-    const { link_id, institution_name } = body as {
-      link_id: string;
-      institution_name?: string;
-    };
 
     if (!link_id) {
-      return NextResponse.json(
-        { error: "link_id requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "link_id requerido." }, { status: 400 });
     }
 
-    // Ensure profile row exists (FK constraint)
+    // Upsert profile first (FK constraint)
     await supabase
       .from("profiles")
       .upsert(
@@ -33,52 +31,46 @@ export async function POST(req: NextRequest) {
         { onConflict: "id" }
       );
 
-    // Upsert the link (avoid duplicates)
-    const { error: linkError } = await supabase.from("belvo_links").upsert(
-      {
+    // Save belvo link
+    const { data: linkData, error: linkError } = await supabase
+      .from("belvo_links")
+      .insert({
         user_id: user.id,
         link_id,
-        institution_name: institution_name ?? null,
-      },
-      { onConflict: "link_id" }
-    );
+        institution_name: institution_name || "Banco",
+        last_synced_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    console.log("Link insert result:", linkData, "Error:", linkError);
 
     if (linkError) {
-      console.log("belvo_links insert error:", linkError);
-      return NextResponse.json(
-        { error: "Error al guardar el link." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: linkError.message }, { status: 500 });
     }
 
-    // Trigger initial sync via internal fetch
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL
-        ? `${req.nextUrl.origin}`
-        : "http://localhost:3000";
+    // Trigger sync — use request origin and forward cookies for auth
+    let syncData = null;
+    try {
+      const origin = request.nextUrl.origin;
+      console.log("Triggering sync at:", `${origin}/api/belvo/sync`);
+      const syncRes = await fetch(`${origin}/api/belvo/sync`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: request.headers.get("cookie") ?? "",
+        },
+        body: JSON.stringify({ link_id }),
+      });
+      syncData = await syncRes.json();
+      console.log("Sync result:", syncData);
+    } catch (syncError) {
+      console.error("Sync error (non-fatal):", syncError);
+    }
 
-    const syncRes = await fetch(`${baseUrl}/api/belvo/sync`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // Forward cookies for auth
-        Cookie: req.headers.get("cookie") ?? "",
-      },
-      body: JSON.stringify({ link_id }),
-    });
-
-    const syncData = syncRes.ok ? await syncRes.json() : null;
-
-    return NextResponse.json({
-      success: true,
-      link_id,
-      sync: syncData,
-    });
+    return NextResponse.json({ success: true, sync: syncData });
   } catch (err) {
-    console.log("Belvo link exception:", err);
-    return NextResponse.json(
-      { error: "Error al registrar el banco." },
-      { status: 500 }
-    );
+    console.error("Link route error:", err);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
