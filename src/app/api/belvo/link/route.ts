@@ -49,18 +49,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: linkError.message }, { status: 500 });
     }
 
-    // Trigger sync — use request origin and forward cookies for auth
+    // Trigger sync — pass user_id directly so sync doesn't need cookie auth
     let syncData = null;
     try {
-      const origin = request.nextUrl.origin;
-      console.log("Triggering sync at:", `${origin}/api/belvo/sync`);
-      const syncRes = await fetch(`${origin}/api/belvo/sync`, {
+      const baseUrl = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
+      console.log("Triggering sync at:", `${baseUrl}/api/belvo/sync`);
+      const syncRes = await fetch(`${baseUrl}/api/belvo/sync`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: request.headers.get("cookie") ?? "",
-        },
-        body: JSON.stringify({ link_id }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ link_id, user_id: user.id }),
       });
       syncData = await syncRes.json();
       console.log("Sync result:", syncData);
