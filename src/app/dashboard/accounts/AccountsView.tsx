@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Account } from "@/lib/types/database";
@@ -79,16 +79,7 @@ export default function AccountsView({
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // Load Belvo widget script once
-  useEffect(() => {
-    const existing = document.querySelector('script[data-belvo]');
-    if (existing) return;
-    const script = document.createElement("script");
-    script.src = "https://cdn.belvo.io/belvo-widget-1-stable.js";
-    script.setAttribute("data-belvo", "true");
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
+  // Script is loaded on-demand inside handleConnectBank
 
   // Refresh accounts from Supabase
   const refreshAccounts = useCallback(async () => {
@@ -118,53 +109,76 @@ export default function AccountsView({
   async function handleConnectBank() {
     setWidgetLoading(true);
     try {
-      // 1. Get token
+      // Step 1 — get access token
+      console.log("[Belvo] Step 1: fetching token...");
       const tokenRes = await fetch("/api/belvo/token", { method: "POST" });
       const tokenData = await tokenRes.json();
+      console.log("[Belvo] Token response:", tokenRes.status, tokenData.access ? "token received" : tokenData);
       if (!tokenRes.ok || !tokenData.access) {
         setToast({ message: tokenData.error ?? "Error al obtener token de Belvo.", type: "error" });
         setWidgetLoading(false);
         return;
       }
-
       const token: string = tokenData.access;
 
-      // 2. Wait for SDK to load
-      let retries = 0;
-      while (!window.belvoSDK && retries < 20) {
-        await new Promise((r) => setTimeout(r, 300));
-        retries++;
+      // Step 2 — load script on-demand if not already present
+      console.log("[Belvo] Step 2: loading SDK script...");
+      if (!document.getElementById("belvo-script")) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.id = "belvo-script";
+          script.src = "https://cdn.belvo.io/belvo-widget-1-stable.js";
+          script.onload = () => {
+            console.log("[Belvo] Script loaded ✓");
+            resolve();
+          };
+          script.onerror = () => reject(new Error("Failed to load Belvo script"));
+          document.head.appendChild(script);
+        });
+      } else {
+        console.log("[Belvo] Script already present, skipping load.");
       }
 
-      if (!window.belvoSDK) {
-        setToast({ message: "No se pudo cargar el widget de Belvo.", type: "error" });
-        setWidgetLoading(false);
-        return;
-      }
+      // Step 3 — wait for window.belvoSDK to be defined
+      console.log("[Belvo] Step 3: waiting for belvoSDK...");
+      await new Promise<void>((resolve) => {
+        const check = () => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((window as any).belvoSDK) {
+            console.log("[Belvo] belvoSDK is ready ✓");
+            resolve();
+          } else {
+            setTimeout(check, 100);
+          }
+        };
+        check();
+      });
 
       setWidgetLoading(false);
 
-      // 3. Build widget
-      window.belvoSDK.createWidget(token, {
+      // Step 4 — build & open the widget
+      console.log("[Belvo] Step 4: creating widget with token:", token.slice(0, 20) + "...");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).belvoSDK.createWidget(token, {
         locale: "es",
         country_codes: ["MX"],
-        callback: async (linkId: string, institution: { name: string }) => {
-          // 4. Save link + trigger sync
-          setToast({ message: `Conectando ${institution.name}...`, type: "success" });
+        access_token: token,
+        callback: async (link: string, institution: string) => {
+          console.log("[Belvo] Callback — link:", link, "institution:", institution);
+          const institutionName = typeof institution === "string" ? institution : (institution as { name?: string })?.name ?? "Banco";
+          setToast({ message: `Conectando ${institutionName}...`, type: "success" });
           try {
             const res = await fetch("/api/belvo/link", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                link_id: linkId,
-                institution_name: institution.name,
-              }),
+              body: JSON.stringify({ link_id: link, institution_name: institutionName }),
             });
             const data = await res.json();
+            console.log("[Belvo] Link save response:", res.status, data);
             if (res.ok) {
               const txCount = data.sync?.transactions_synced ?? 0;
               setToast({
-                message: `¡${institution.name} conectado! ${txCount > 0 ? `${txCount} transacciones importadas.` : ""}`,
+                message: `¡${institutionName} conectado! ${txCount > 0 ? `${txCount} transacciones importadas.` : ""}`,
                 type: "success",
               });
               await Promise.all([refreshLinks(), refreshAccounts()]);
@@ -172,20 +186,24 @@ export default function AccountsView({
             } else {
               setToast({ message: data.error ?? "Error al conectar el banco.", type: "error" });
             }
-          } catch {
+          } catch (e) {
+            console.error("[Belvo] Link save error:", e);
             setToast({ message: "Error de red al conectar.", type: "error" });
           }
         },
-        onExit: () => {
+        onExit: (data: unknown) => {
+          console.log("[Belvo] Widget exited:", data);
           setWidgetLoading(false);
         },
-        onEvent: (data) => {
-          console.log("Belvo widget event:", data);
+        onEvent: (data: unknown) => {
+          console.log("[Belvo] Widget event:", data);
         },
       }).build();
+
+      console.log("[Belvo] Widget .build() called ✓");
     } catch (err) {
-      console.log("Widget error:", err);
-      setToast({ message: "Error al abrir el widget.", type: "error" });
+      console.error("[Belvo] Widget error:", err);
+      setToast({ message: "Error al abrir el widget. Intenta de nuevo.", type: "error" });
       setWidgetLoading(false);
     }
   }

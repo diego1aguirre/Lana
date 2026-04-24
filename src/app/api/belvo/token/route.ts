@@ -10,16 +10,20 @@ function belvoAuth(): string {
 }
 
 export async function POST() {
+  console.log("BELVO_SECRET_ID:", process.env.BELVO_SECRET_ID ? "found" : "missing");
+  console.log("BELVO_SECRET_PASSWORD:", process.env.BELVO_SECRET_PASSWORD ? "found" : "missing");
+  console.log("BELVO_BASE_URL:", process.env.BELVO_BASE_URL);
+
   try {
     const res = await fetch(`${BELVO_BASE_URL}/api/token/`, {
       method: "POST",
       headers: {
-        Authorization: belvoAuth(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        scopes:
-          "read_institutions,read_accounts,read_transactions,write_links",
+        id: BELVO_SECRET_ID,
+        password: BELVO_SECRET_PASSWORD,
+        scopes: "read_institutions,write_links",
       }),
     });
 
