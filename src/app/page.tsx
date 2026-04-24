@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatMXN } from "@/lib/design-tokens";
+import LandingPolish from "@/components/landing/LandingPolish";
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
 
@@ -290,7 +291,7 @@ function Features() {
   return (
     <section id="caracteristicas" className="py-24 px-6 md:px-12" style={{ background: "#0A0F1E" }}>
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
+        <div className="text-center mb-16 reveal">
           <h2
             className="text-3xl md:text-4xl font-bold mb-4"
             style={{ fontFamily: "var(--font-sora)", color: "#F9FAFB" }}
@@ -304,11 +305,15 @@ function Features() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((f) => (
+          {features.map((f, i) => (
             <div
               key={f.title}
-              className="card-hover rounded-2xl p-6 group"
-              style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.05)" }}
+              className="feature-card card-hover rounded-2xl p-6 reveal"
+              style={{
+                background: "#111827",
+                border: "1px solid rgba(255,255,255,0.05)",
+                transitionDelay: `${i * 60}ms`,
+              }}
             >
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
@@ -371,7 +376,7 @@ function SocialProof() {
     <section className="py-24 px-6 md:px-12" style={{ background: "#0A0F1E" }}>
       <div className="max-w-7xl mx-auto">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-6 mb-20 max-w-2xl mx-auto">
+        <div className="grid grid-cols-3 gap-6 mb-20 max-w-2xl mx-auto reveal">
           {stats.map((s) => (
             <div key={s.label} className="text-center">
               <p
@@ -387,7 +392,7 @@ function SocialProof() {
           ))}
         </div>
 
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 reveal">
           <h2
             className="text-3xl md:text-4xl font-bold mb-4"
             style={{ fontFamily: "var(--font-sora)", color: "#F9FAFB" }}
@@ -398,11 +403,15 @@ function SocialProof() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {testimonials.map((t) => (
+          {testimonials.map((t, i) => (
             <div
               key={t.name}
-              className="card-hover rounded-2xl p-6"
-              style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.05)" }}
+              className="card-hover rounded-2xl p-6 reveal"
+              style={{
+                background: "#111827",
+                border: "1px solid rgba(255,255,255,0.05)",
+                transitionDelay: `${i * 80}ms`,
+              }}
             >
               <p
                 className="text-sm leading-relaxed mb-5"
@@ -452,7 +461,7 @@ function Pricing() {
   return (
     <section id="precios" className="py-24 px-6 md:px-12" style={{ background: "#0A0F1E" }}>
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
+        <div className="text-center mb-16 reveal">
           <h2
             className="text-3xl md:text-4xl font-bold mb-4"
             style={{ fontFamily: "var(--font-sora)", color: "#F9FAFB" }}
@@ -467,7 +476,7 @@ function Pricing() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           {/* Free */}
           <div
-            className="rounded-2xl p-8"
+            className="rounded-2xl p-8 reveal"
             style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.05)" }}
           >
             <h3
@@ -511,61 +520,61 @@ function Pricing() {
             </Link>
           </div>
 
-          {/* Pro */}
-          <div
-            className="relative rounded-2xl p-8"
-            style={{
-              background: "linear-gradient(135deg, rgba(27,79,216,0.15), rgba(0,200,150,0.05))",
-              border: "1px solid rgba(27,79,216,0.4)",
-              boxShadow: "0 0 40px rgba(27,79,216,0.2)",
-            }}
-          >
+          {/* Pro — animated gradient border */}
+          <div className="pro-card-border reveal" style={{ transitionDelay: "80ms" }}>
             <div
-              className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold"
-              style={{ background: "#1B4FD8", color: "#fff", fontFamily: "var(--font-dm-sans)" }}
-            >
-              ✦ Más popular
-            </div>
-            <h3
-              className="text-lg font-bold mb-1"
-              style={{ fontFamily: "var(--font-sora)", color: "#F9FAFB" }}
-            >
-              Pro
-            </h3>
-            <p className="text-sm mb-6" style={{ color: "#9CA3AF", fontFamily: "var(--font-dm-sans)" }}>
-              Para los serios con su dinero
-            </p>
-            <div className="flex items-baseline gap-1 mb-6">
-              <span className="text-4xl font-bold" style={{ fontFamily: "var(--font-sora)", color: "#F9FAFB" }}>
-                $129
-              </span>
-              <span className="text-sm" style={{ color: "#9CA3AF", fontFamily: "var(--font-dm-sans)" }}>
-                /mes MXN
-              </span>
-            </div>
-            <ul className="space-y-3 mb-8">
-              {proFeatures.map((f) => (
-                <li
-                  key={f}
-                  className="flex items-center gap-2.5 text-sm"
-                  style={{ color: "#D1D5DB", fontFamily: "var(--font-dm-sans)" }}
-                >
-                  <span style={{ color: "#00C896" }}>✓</span> {f}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/signup"
-              className="block text-center py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:opacity-90 hover:scale-[1.02] cursor-pointer"
+              className="relative rounded-[15px] p-8 h-full"
               style={{
-                background: "#1B4FD8",
-                color: "#fff",
-                fontFamily: "var(--font-dm-sans)",
-                boxShadow: "0 0 20px rgba(27,79,216,0.4)",
+                background: "linear-gradient(135deg, rgba(27,79,216,0.15), rgba(0,200,150,0.05))",
               }}
             >
-              Comenzar con Pro
-            </Link>
+              <div
+                className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold"
+                style={{ background: "#1B4FD8", color: "#fff", fontFamily: "var(--font-dm-sans)" }}
+              >
+                ✦ Más popular
+              </div>
+              <h3
+                className="text-lg font-bold mb-1"
+                style={{ fontFamily: "var(--font-sora)", color: "#F9FAFB" }}
+              >
+                Pro
+              </h3>
+              <p className="text-sm mb-6" style={{ color: "#9CA3AF", fontFamily: "var(--font-dm-sans)" }}>
+                Para los serios con su dinero
+              </p>
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-4xl font-bold" style={{ fontFamily: "var(--font-sora)", color: "#F9FAFB" }}>
+                  $129
+                </span>
+                <span className="text-sm" style={{ color: "#9CA3AF", fontFamily: "var(--font-dm-sans)" }}>
+                  /mes MXN
+                </span>
+              </div>
+              <ul className="space-y-3 mb-8">
+                {proFeatures.map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-center gap-2.5 text-sm"
+                    style={{ color: "#D1D5DB", fontFamily: "var(--font-dm-sans)" }}
+                  >
+                    <span style={{ color: "#00C896" }}>✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/signup"
+                className="block text-center py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:opacity-90 hover:scale-[1.02] cursor-pointer"
+                style={{
+                  background: "#1B4FD8",
+                  color: "#fff",
+                  fontFamily: "var(--font-dm-sans)",
+                  boxShadow: "0 0 20px rgba(27,79,216,0.4)",
+                }}
+              >
+                Comenzar con Pro
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -650,6 +659,8 @@ export default function Home() {
       <SocialProof />
       <Pricing />
       <Footer />
+      {/* Client-side: scroll reveal + back-to-top */}
+      <LandingPolish />
     </main>
   );
 }

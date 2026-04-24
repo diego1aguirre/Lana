@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTransactions, getCategories, getAccounts } from "@/lib/db/queries";
 import TransactionsList from "./TransactionsList";
+import PageTransition from "@/components/ui/PageTransition";
 
 export default async function TransactionsPage() {
   const supabase = createClient();
@@ -17,10 +18,12 @@ export default async function TransactionsPage() {
   ]);
 
   return (
-    <TransactionsList
-      transactions={transactions}
-      categories={categories}
-      accounts={accounts}
-    />
+    <PageTransition>
+      <TransactionsList
+        transactions={transactions}
+        categories={categories}
+        accounts={accounts}
+      />
+    </PageTransition>
   );
 }

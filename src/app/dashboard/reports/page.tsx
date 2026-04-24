@@ -6,6 +6,7 @@ import {
   getCategoryTotalsForPeriod,
 } from "@/lib/db/queries";
 import ReportsView from "./ReportsView";
+import PageTransition from "@/components/ui/PageTransition";
 
 export default async function ReportsPage() {
   const supabase = createClient();
@@ -22,11 +23,13 @@ export default async function ReportsPage() {
   ]);
 
   return (
-    <ReportsView
-      userId={user.id}
-      initialTransactions={transactions}
-      initialMonthlyTotals={monthlyTotals}
-      initialCategoryTotals={categoryTotals}
-    />
+    <PageTransition>
+      <ReportsView
+        userId={user.id}
+        initialTransactions={transactions}
+        initialMonthlyTotals={monthlyTotals}
+        initialCategoryTotals={categoryTotals}
+      />
+    </PageTransition>
   );
 }

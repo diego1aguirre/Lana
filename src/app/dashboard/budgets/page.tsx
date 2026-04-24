@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getBudgets, getCategories, getExpensesByCategory } from "@/lib/db/queries";
 import BudgetsView from "./BudgetsView";
+import PageTransition from "@/components/ui/PageTransition";
 
 interface PageProps {
   searchParams: { new?: string };
@@ -27,14 +28,16 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
   const expenseCategories = categories.filter((c) => c.type === "expense");
 
   return (
-    <BudgetsView
-      userId={user.id}
-      initialBudgets={budgets}
-      categories={expenseCategories}
-      initialExpensesByCategory={expensesByCategory}
-      initialMonth={month}
-      initialYear={year}
-      initialShowNew={searchParams.new === "true"}
-    />
+    <PageTransition>
+      <BudgetsView
+        userId={user.id}
+        initialBudgets={budgets}
+        categories={expenseCategories}
+        initialExpensesByCategory={expensesByCategory}
+        initialMonth={month}
+        initialYear={year}
+        initialShowNew={searchParams.new === "true"}
+      />
+    </PageTransition>
   );
 }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAccounts } from "@/lib/db/queries";
 import AccountsView from "./AccountsView";
+import PageTransition from "@/components/ui/PageTransition";
 
 export type BelvoLink = {
   id: string;
@@ -29,10 +30,12 @@ export default async function AccountsPage() {
   ]);
 
   return (
-    <AccountsView
-      userId={user.id}
-      initialAccounts={accounts}
-      initialBelvoLinks={(belvoLinks as BelvoLink[]) ?? []}
-    />
+    <PageTransition>
+      <AccountsView
+        userId={user.id}
+        initialAccounts={accounts}
+        initialBelvoLinks={(belvoLinks as BelvoLink[]) ?? []}
+      />
+    </PageTransition>
   );
 }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, getAccounts } from "@/lib/db/queries";
 import SettingsView from "./SettingsView";
+import PageTransition from "@/components/ui/PageTransition";
 
 export default async function SettingsPage() {
   const supabase = createClient();
@@ -16,11 +17,13 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <SettingsView
-      userId={user.id}
-      email={user.email ?? ""}
-      initialProfile={profile}
-      initialAccounts={accounts}
-    />
+    <PageTransition>
+      <SettingsView
+        userId={user.id}
+        email={user.email ?? ""}
+        initialProfile={profile}
+        initialAccounts={accounts}
+      />
+    </PageTransition>
   );
 }

@@ -14,6 +14,7 @@ import {
 import { formatMXN } from "@/lib/design-tokens";
 import WeeklyChart from "./components/WeeklyChart";
 import CategoryChart from "./components/CategoryChart";
+import PageTransition from "@/components/ui/PageTransition";
 import type { Transaction, BudgetWithSpent } from "@/lib/types/database";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -264,6 +265,7 @@ export default async function DashboardPage() {
     expenses.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   return (
+    <PageTransition>
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       {/* ── Header ── */}
       <header className="flex items-start justify-between gap-4">
@@ -382,5 +384,6 @@ export default async function DashboardPage() {
         </>
       )}
     </div>
+    </PageTransition>
   );
 }

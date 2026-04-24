@@ -15,9 +15,7 @@ html {
   --color-surface2: #1F2937;
 }
 
-html {
-  scroll-behavior: smooth;
-}
+/* Remove duplicate scroll-behavior */
 
 body {
   background-color: #0A0F1E;
@@ -63,4 +61,105 @@ body {
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
     border-color: rgba(255, 255, 255, 0.1);
   }
+}
+
+/* ── Skeleton shimmer ─────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.05) 50%,
+    transparent 100%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+/* ── Page transition ──────────────────────────────────────────────────────── */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: pageIn 0.28s ease-out forwards;
+}
+
+/* ── Button press effect ──────────────────────────────────────────────────── */
+button:active:not(:disabled),
+a[role="button"]:active {
+  transform: scale(0.98);
+}
+
+/* ── Focus visible ────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(27, 79, 216, 0.7);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Mobile sidebar drawer ────────────────────────────────────────────────── */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.drawer-enter {
+  animation: slideInLeft 0.22s ease-out forwards;
+}
+
+.overlay-enter {
+  animation: fadeIn 0.22s ease-out forwards;
+}
+
+/* ── Landing scroll reveal ────────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.55s ease-out, transform 0.55s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Feature card hover glow ──────────────────────────────────────────────── */
+.feature-card:hover {
+  box-shadow: 0 0 0 1px rgba(27,79,216,0.2), 0 8px 32px rgba(27,79,216,0.12);
+  border-color: rgba(27,79,216,0.25) !important;
+}
+
+/* ── Animated gradient border (Pro pricing card) ──────────────────────────── */
+@keyframes borderRotate {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.pro-card-border {
+  background: linear-gradient(135deg, #1B4FD8, #00C896, #1B4FD8);
+  background-size: 200% 200%;
+  animation: borderRotate 4s ease infinite;
+  padding: 1px;
+  border-radius: 16px;
 }
