@@ -156,8 +156,10 @@ export default function AccountsView({
 
       setWidgetLoading(false);
 
-      // Step 4 — build & open the widget
-      console.log("[Belvo] Step 4: creating widget with token:", token.slice(0, 20) + "...");
+      // Step 4 — make the Belvo mount div visible, then build the widget
+      const belvoDiv = document.getElementById("belvo");
+      if (belvoDiv) belvoDiv.style.display = "block";
+      console.log("[Belvo] Step 4: belvo div visible:", !!belvoDiv, "— creating widget with token:", token.slice(0, 20) + "...");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).belvoSDK.createWidget(token, {
         locale: "es",
@@ -193,6 +195,8 @@ export default function AccountsView({
         },
         onExit: (data: unknown) => {
           console.log("[Belvo] Widget exited:", data);
+          const belvoDiv = document.getElementById("belvo");
+          if (belvoDiv) belvoDiv.style.display = "none";
           setWidgetLoading(false);
         },
         onEvent: (data: unknown) => {
@@ -556,6 +560,9 @@ export default function AccountsView({
           </div>
         )}
       </div>
+
+      {/* Required Belvo mount point — hidden until widget opens */}
+      <div id="belvo" style={{ display: "none" }} />
 
       {toast && (
         <Toast
